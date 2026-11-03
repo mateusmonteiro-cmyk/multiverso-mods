@@ -1,0 +1,14 @@
+{
+  "name": "multiverso-mods",
+  "owner": {
+    "name": "Mateus Monteiro"
+  },
+  "plugins": [
+    {
+      "name": "medidor-de-uso",
+      "source": "./",
+      "description": "Mostra fixo o percentual de uso do plano (janela de 5h e semanal)",
+      "version": "0.1.0"
+    }
+  ]
+}
