@@ -1,0 +1,1 @@
+{ "name": "medidor-de-uso", "version": "0.1.0", "description": "Mostra fixo o percentual de uso do plano (janela de 5h e semanal)", "author": { "name": "Mateus Monteiro" }, "license": "MIT" }
