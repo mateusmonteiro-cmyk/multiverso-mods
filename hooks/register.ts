@@ -1,47 +1,39 @@
-import type { EngineInterface, Register } from 'claude-code'
-
-const NOMES: Record<string, string> = {
-  five_hour: 'da sessão atual',
-  seven_day: 'Semana',
-  spend_limit: 'Limite',
-}
+import type { EngineInterface, Register, RenderElement } from 'claude-code'
 
 const avisados = new Set<string>()
 
-function nome(kind: string): string {
-  return NOMES[kind] ?? kind
-}
+async function linhaDeUso($: EngineInterface): Promise<string> {
+  const { rateLimits } = await $.session.usage()
+  const sessao = rateLimits.find(r => r.kind === 'five_hour')
+  if (!sessao) return 'Sessão atual - aguardando...'
 
-async function atualizar($: EngineInterface): Promise<void> {
-  const { rateLimits: todos } = await $.session.usage()
-  const rateLimits = todos.filter(r => r.kind === 'five_hour')
-  if (rateLimits.length === 0) {
-    $.ui.status('Sessão atual - aguardando...')
-    return
-  }
-  $.ui.status(`Sessão atual - ${Math.round(rateLimits[0].percentUsed)}% usados`)
-
-  for (const r of rateLimits) {
-    for (const limite of [80, 95]) {
-      const chave = `${r.kind}:${limite}:${r.resetsAt ?? ''}`
-      if (r.percentUsed >= limite && !avisados.has(chave)) {
-        avisados.add(chave)
-        $.ui.toast(`Atenção: ${r.percentUsed}% do limite ${nome(r.kind)} já foi usado`)
-      }
+  for (const limite of [80, 95]) {
+    const chave = `${limite}:${sessao.resetsAt ?? ''}`
+    if (sessao.percentUsed >= limite && !avisados.has(chave)) {
+      avisados.add(chave)
+      $.ui.toast(`Atenção: ${Math.round(sessao.percentUsed)}% da sessão atual já foi usado`)
     }
   }
+  return `Sessão atual - ${Math.round(sessao.percentUsed)}% usados`
 }
 
 export const register: Register = on => {
   on('session.start', async ($, e, next) => {
     const r = await next(e)
-    await atualizar($)
+    $.ui.status(await linhaDeUso($))
     return r
   })
 
   on('turn.complete', async ($, e, next) => {
     const r = await next(e)
-    await atualizar($)
+    $.ui.status(await linhaDeUso($))
+    $.ui.invalidate('ui.render')
     return r
+  })
+
+  on('ui.render', { component: 'AbovePrompt' }, async ($, e) => {
+    const { Box, Text } = $.ui.resolve(e)
+    const linha = await linhaDeUso($)
+    return h(Box, null, h(Text, { dimColor: true }, linha)) as RenderElement
   })
 }
