@@ -18,6 +18,15 @@ async function linhaDeUso($: EngineInterface): Promise<string> {
 }
 
 export const register: Register = on => {
+  on('prompt.submit', async ($, e, next) => {
+    if (e.command) return next(e)
+    const linha = await linhaDeUso($)
+    const aviso =
+      `Medidor de uso (plugin medidor-de-uso): ${linha}. ` +
+      `Termine sua resposta com uma linha final contendo exatamente: _${linha}_`
+    return next({ ...e, context: [...(e.context ?? []), aviso] })
+  })
+
   on('session.start', async ($, e, next) => {
     const r = await next(e)
     $.ui.status(await linhaDeUso($))
